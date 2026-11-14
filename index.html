@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="Primordia: an artificial-life laboratory. Watch neural-network creatures evolve by natural selection."
+    />
+    <title>Primordia · artificial life laboratory</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23a78bfa' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23c4b5fd'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="world" aria-label="World view. Drag to pan, scroll to zoom, click a creature to inspect it."></canvas>
+
+      <header class="bar" id="bar">
+        <div class="brand" title="Primordia">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="16" r="10" />
+            <circle class="core" cx="16" cy="16" r="3.5" />
+            <path d="M16 6c4 3 4 7 0 10s-4 7 0 10" />
+          </svg>
+          <span>primordia</span>
+        </div>
+        <div class="group">
+          <button id="play" class="btn icon" title="Play / pause (Space)" aria-label="Play or pause"></button>
+          <div class="seg" id="speeds" role="group" aria-label="Simulation speed"></div>
+        </div>
+        <div class="group readout">
+          <span><i>tick</i><b id="r-tick">0</b></span>
+          <span><i>pop</i><b id="r-pop">0</b></span>
+          <span><i>species</i><b id="r-species">0</b></span>
+          <span><i>gen</i><b id="r-gen">0</b></span>
+          <span class="season" title="Season"
+            ><i id="r-season-label">summer</i><span class="meter"><span id="r-season"></span></span
+          ></span>
+          <span><i>speed</i><b id="r-tps">0</b></span>
+        </div>
+        <div class="group right">
+          <button id="fit" class="btn" title="Fit world to view (0)">Fit</button>
+          <button id="share" class="btn" title="Copy a link that recreates this world">Share</button>
+          <button id="save" class="btn" title="Download this world as a file">Save</button>
+          <button id="load" class="btn" title="Load a saved world">Load</button>
+          <input id="file" type="file" accept="application/json,.json" hidden />
+        </div>
+      </header>
+
+      <aside class="side" id="side">
+        <nav class="tabs" role="tablist" id="tabs">
+          <button role="tab" data-tab="overview" class="on">Overview</button>
+          <button role="tab" data-tab="species">Species</button>
+          <button role="tab" data-tab="inspect">Creature</button>
+          <button role="tab" data-tab="lab">Lab</button>
+          <button role="tab" data-tab="chronicle">Chronicle</button>
+        </nav>
+
+        <section class="panel on" data-panel="overview">
+          <h3>Population and food</h3>
+          <canvas class="chart" id="c-pop"></canvas>
+          <h3>Ecological roles</h3>
+          <canvas class="chart short" id="c-roles"></canvas>
+          <div class="legend">
+            <span class="sw herb"></span>herbivores <span class="sw omni"></span>omnivores
+            <span class="sw carn"></span>carnivores
+          </div>
+          <h3>Average traits</h3>
+          <canvas class="chart" id="c-traits"></canvas>
+          <h3>Notable individuals</h3>
+          <div class="fame" id="fame"></div>
+        </section>
+
+        <section class="panel" data-panel="species">
+          <h3>Populations over time</h3>
+          <canvas class="chart" id="c-stream"></canvas>
+          <h3>Tree of life <small>click a branch to highlight</small></h3>
+          <canvas class="chart tall" id="c-tree"></canvas>
+          <h3>Living species <small id="sp-count"></small></h3>
+          <div class="species-list" id="species-list"></div>
+        </section>
+
+        <section class="panel" data-panel="inspect">
+          <div id="inspect-empty" class="empty">
+            <p>Click a creature in the world to inspect its body, genes and brain.</p>
+            <button class="btn" id="pick-random">Pick one for me</button>
+          </div>
+          <div id="inspect-body" hidden>
+            <div class="who">
+              <span class="dot" id="i-dot"></span>
+              <div><b id="i-name"></b><small id="i-sub"></small></div>
+            </div>
+            <div class="bars">
+              <label>energy <span id="i-energy-t"></span></label>
+              <div class="meter wide"><span id="i-energy"></span></div>
+              <label>age <span id="i-age-t"></span></label>
+              <div class="meter wide"><span id="i-age" class="alt"></span></div>
+            </div>
+            <div class="actions">
+              <button class="btn" id="i-follow" aria-pressed="false">Follow</button>
+              <button class="btn" id="i-species">Highlight species</button>
+              <button class="btn" id="i-propagate" title="Spawn 8 mutated descendants">Propagate</button>
+              <button class="btn danger" id="i-cull">Cull</button>
+            </div>
+            <h3>Traits</h3>
+            <div class="kv" id="i-traits"></div>
+            <h3>Life</h3>
+            <div class="kv" id="i-life"></div>
+            <h3>Lineage</h3>
+            <div class="lineage" id="i-lineage"></div>
+            <h3>Brain <small>live activations</small></h3>
+            <canvas class="chart brain" id="c-brain"></canvas>
+          </div>
+        </section>
+
+        <section class="panel" data-panel="lab">
+          <h3>New world</h3>
+          <div class="form">
+            <label for="seed">Seed</label>
+            <div class="row">
+              <input id="seed" type="text" spellcheck="false" autocomplete="off" maxlength="64" /><button
+                class="btn"
+                id="reseed"
+                title="Random seed"
+              >
+                Random
+              </button>
+            </div>
+            <label for="preset">Preset</label>
+            <select id="preset"></select>
+            <p class="hint" id="preset-hint"></p>
+            <button class="btn primary" id="create">Create world</button>
+          </div>
+          <h3>Live settings <small>changes are logged in the chronicle</small></h3>
+          <div class="sliders" id="sliders"></div>
+          <h3>Events</h3>
+          <div class="events" id="events"></div>
+          <h3>Pointer tool</h3>
+          <div class="seg wide" id="tools" role="group" aria-label="Pointer tool"></div>
+          <h3>View</h3>
+          <div class="form">
+            <label for="colormode">Colour creatures by</label>
+            <select id="colormode">
+              <option value="genome">Genome colour gene</option>
+              <option value="species">Species</option>
+              <option value="diet">Diet (green plants, red meat)</option>
+              <option value="energy">Energy</option>
+              <option value="generation">Generation</option>
+            </select>
+            <label class="check"><input type="checkbox" id="opt-halos" checked /> Glow</label>
+            <label class="check"
+              ><input type="checkbox" id="opt-vision" checked /> Show vision of selected creature</label
+            >
+          </div>
+          <h3>Keyboard</h3>
+          <div class="kv keys">
+            <span>Space</span><span>play / pause</span> <span>1 to 5</span><span>speed</span> <span>0</span
+            ><span>fit world</span> <span>F</span><span>follow selected</span> <span>R</span
+            ><span>random creature</span> <span>Esc</span><span>clear selection</span>
+          </div>
+        </section>
+
+        <section class="panel" data-panel="chronicle">
+          <h3>Chronicle <small>the history of this world</small></h3>
+          <div class="chronicle" id="chronicle"></div>
+        </section>
+
+        <footer class="credit">
+          Primordia · Created by <a href="https://github.com/jullewz" target="_blank" rel="noopener">jullewz</a>
+        </footer>
+      </aside>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+    <noscript><p style="padding: 2rem; color: #e6e6ea">Primordia needs JavaScript to simulate its world.</p></noscript>
+    <script type="module" src="dist/src/ui/main.js"></script>
+  </body>
+</html>
