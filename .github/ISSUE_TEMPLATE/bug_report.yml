@@ -1,0 +1,37 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: seed
+    attributes:
+      label: Seed, preset and tick
+      description: Worlds are reproducible, so this usually lets the bug be replayed exactly.
+      placeholder: "seed=darwin preset=balanced tick=18,400"
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options: [Browser, Headless CLI, Both]
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Browser or Node version, and operating system
+      placeholder: "Chrome 131 on Windows 11"
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Console output
+      description: Any errors from the browser console (F12) or the terminal.
+      render: text
